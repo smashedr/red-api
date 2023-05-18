@@ -1,0 +1,80 @@
+version: '3.9'
+
+services:
+  nginx:
+    build: ./nginx
+    image: myapp-nginx:latest
+    deploy:
+      mode: global
+    volumes:
+      - data_dir:/data
+    secrets:
+      - source: cssnr_basic_http_auth
+        target: /etc/nginx/auth.users
+    networks:
+      - redbot-internal
+    ports:
+      - "80:80"
+    depends_on:
+      - app
+#      - redis-commander
+#      - pgadmin
+
+  app:
+    build: ./app
+    image: myapp-app:latest
+    env_file: settings.env
+    command: "gunicorn myapp.wsgi:application -b 0.0.0.0:9000 -w 2"
+    deploy:
+      mode: global
+    volumes:
+      - data_dir:/data
+    networks:
+      - redbot-internal
+#    depends_on:
+#      - redis
+
+#  redis:
+#    image: redis:6-alpine
+#    command: "redis-server --appendonly yes"
+#    deploy:
+#      replicas: 1
+#    volumes:
+#      - redis_data:/data
+#    networks:
+#      - redbot-internal
+
+  redis-commander:
+    image: ghcr.io/joeferner/redis-commander:latest
+    environment:
+      - REDIS_HOSTS=local:redis:6379:0,local:redis:6379:1
+      - URL_PREFIX=/redis
+      - TRUST_PROXY=true
+    deploy:
+      replicas: 1
+    networks:
+      - redbot-internal
+
+#  pgadmin:
+#    image: dpage/pgadmin4:latest
+#    environment:
+#      - PGADMIN_DEFAULT_EMAIL=shane@cssnr.com
+#      - PGADMIN_DEFAULT_PASSWORD=torrent1
+#      - PGADMIN_LISTEN_PORT=8082
+#    deploy:
+#      replicas: 1
+#    volumes:
+#      - redis_data:/data
+
+secrets:
+  cssnr_basic_http_auth:
+    file: ~/basic_http_auth
+
+volumes:
+  data_dir:
+#  redis_data:
+
+networks:
+  redbot-internal:
+    name: "redbot-internal"
+    external: true

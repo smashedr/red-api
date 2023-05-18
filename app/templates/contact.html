@@ -1,0 +1,70 @@
+{% extends "main.html" %}
+{% load static %}
+{% load home_tags %}
+{% load cache %}
+{% block contact_active %}active{% endblock %}
+{% block title %}Contact{% endblock %}
+
+{% block head %}{% endblock %}
+
+{% block body %}
+
+    <h1>Contact</h1>
+
+    <p class="lead">Contact Us.</p>
+
+    <form id="contact-form" name="contact-form" method="POST" action="{% url 'home:contact' %}">
+        {% csrf_token %}
+        <div class="row">
+            <div class="mb-3 col-12 col-md-6">
+                <label for="name">Name</label>
+                <input type="text" class="form-control" id="name" name="name" placeholder="Name" required>
+                <div class="invalid-feedback" id="char_name-invalid"></div>
+            </div>
+            <div class="mb-3 col-12 col-md-6">
+                <label for="reason">Reason</label>
+                <select id="reason" name="reason" class="form-control custom-select" required>
+                    <option value="" selected disabled>-- Select One --</option>
+                    <option value="Donate1">Donate Money</option>
+                    <option value="Donate2">Give Money</option>
+                    <option value="Donate3">Pay Money</option>
+                </select>
+                <div class="invalid-feedback" id="char_role-invalid"></div>
+            </div>
+        </div>
+        <div class="row">
+            <div class="col mb-3">
+                <label for="contact">Contact</label>
+                <textarea class="form-control" id="message" name="message" rows="3"
+                          placeholder="Contact body." required></textarea>
+                <div class="invalid-feedback" id="raid_exp-invalid"></div>
+            </div>
+        </div>
+
+        <div class="row">
+            <div class="col mb-3">
+                {% if request.session.g_verified or request.user.is_authenticated %}{% else %}
+                    <div class="g-recaptcha"
+                         data-sitekey="{% get_config 'GOOGLE_SITE_PUBLIC' %}"
+                         data-theme="dark"
+                    ></div>
+                {% endif %}
+                <button type="submit" id="submit-app-btn" class="btn btn-outline-success my-2">
+                    Send Contact <i class="far fa-paper-plane ms-2"></i></button>
+            </div>
+        </div>
+
+    </form>
+
+    <div style="display:none;" id="contact-success" class="alert alert-success" role="alert">
+        Your contact has been successfully submitted.
+    </div>
+
+{% endblock %}
+
+{% block tail %}
+    <script type="text/javascript" src="{% static 'main/js/contact.js' %}"></script>
+    {% if request.session.g_verified or request.user.is_authenticated %}{% else %}
+        <script type="text/javascript" src="https://www.google.com/recaptcha/api.js" async defer></script>
+    {% endif %}
+{% endblock %}
