@@ -13,43 +13,55 @@
 
 {% block body_raw %}
 
-    <div class="container-fluid d-flex flex-column text-center justify-content-center align-items-center vh-100"
-         style="min-width: 340px;">
-        {% if error %}
-            <h1>Error</h1>
-            <p class="lead">{{ error }}</p>
-        {% else %}
-            <h1>{{ guild.name }}</h1>
-            <div class="align-content-center my-2">
-                <img src="{{ guild.icon }}" class="rounded"
-                     alt="{{ guild.name }}" height="128" width="128">
-                <i class="fa-solid fa-right-left"></i>
-                <img src="{{ member.avatar|default:member.default_avatar }}" class="rounded"
-                     alt="{{ member.name }}" height="128" width="128">
+    <div class="container-fluid d-flex flex-column text-center justify-content-center align-items-center vh-100">
+        <div class="card border-primary mb-3" style="min-width: 340px;max-width: 360px;">
+            <div class="card-body text-primary"> <!-- style="min-height: 360px;" -->
+
+{% if error %}
+    <h1>Error</h1>
+    <p class="lead">{{ error }}</p>
+{% else %}
+    <h4>{{ guild.name }}</h4>
+    <div class="align-content-center my-2">
+        <img src="{{ guild.icon }}" class="rounded"
+             alt="{{ guild.name }}" height="128" width="128">
+        <i class="fa-solid fa-right-left"></i>
+        <img src="{{ member.avatar|default:member.default_avatar }}" class="rounded"
+             alt="{{ member.name }}" height="128" width="128">
+    </div>
+
+    {% if not request.session.g_verified %}
+        <p class="lead">Let's get you verified, {{ member.name }}.</p>
+    {% else %}
+        <p class="lead">You are already verified, {{ member.name }}.</p>
+    {% endif %}
+
+    <div class="d-flex flex-column text-center justify-content-center align-items-center" style="min-height: 120px">
+        {% if not request.session.g_verified %}
+            <form id="verify-form" name="verify-form" method="POST" action="{% url 'home:verify' %}">
+                {% csrf_token %}
+                <div class="g-recaptcha"
+                     data-sitekey="{% get_config 'GOOGLE_SITE_PUBLIC' %}"
+                     data-theme="dark" data-callback="g_captcha_callback">
+                </div>
+            <input type="hidden" name="guild" value="{{ guild.id }}">
+            <input type="hidden" name="user" value="{{ member.id }}">
+            </form>
+            <div style="display:none;" id="verify-success" class="alert alert-success" role="alert">
+                You have been successfully verified. <br> You may chat on Discord now.
             </div>
-            {% if not request.session.g_verified %}
-                <p class="lead">Let's get you verified, {{ member.name }}.</p>
-                <form id="verify-form" name="verify-form" method="POST" action="{% url 'home:verify' %}">
-                    {% csrf_token %}
-                    <div class="g-recaptcha"
-                         data-sitekey="{% get_config 'GOOGLE_SITE_PUBLIC' %}"
-                         data-theme="dark" data-callback="g_captcha_callback">
-                    </div>
-                <input type="hidden" name="guild" value="{{ guild.id }}">
-                <input type="hidden" name="user" value="{{ member.id }}">
-                </form>
-            {% endif %}
-            {% if not request.session.g_verified %}
-                <div style="display:none;" id="verify-success" class="alert alert-success" role="alert">
-                    You have been successfully verified. <br> You may chat on Discord now.
-                </div>
-            {% else %}
-                <p class="lead">You are already verified, {{ member.name }}.</p>
-                <div id="verify-success" class="alert alert-success" role="alert">
-                    You have already been verified. <br> You should be able to chat on Discord.
-                </div>
-            {% endif %}
+        {% else %}
+            <div id="verify-success" class="alert alert-success" role="alert">
+                You have already been verified. <br> You should be able to chat on Discord.
+            </div>
         {% endif %}
+    </div>
+
+{% endif %}
+
+
+            </div>
+        </div>
     </div>
 
 {% endblock %}
