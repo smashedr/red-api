@@ -87,8 +87,8 @@ def verify_view(request):
     try:
         logger.debug(request.POST)
         if not google_verify(request):
-            data = {'error_message': 'Google CAPTCHA not verified.'}
-            return JsonResponse(data, status=400)
+            context = {'error_message': 'Google CAPTCHA not verified.'}
+            return JsonResponse(context, status=400)
 
         guild = request.POST['guild']
         logger.debug('guild: %s', guild)
@@ -98,8 +98,15 @@ def verify_view(request):
         br = bot_request('red.captcha', ['verify'], guild, user, data)
         logger.debug('br: %s', br)
         if not br:
-            context = {'error': 'Error fetching data from Discord.'}
-            return render(request, 'verify.html', context)
+            context = {'error_message': 'Error fetching data from Discord.'}
+            return JsonResponse(context, status=400)
+
+        if 'success' not in br or not br['success']:
+            if 'message' in br:
+                message = br['message']
+            else:
+                message = 'Error completing verification with Discord Bot.'
+            return JsonResponse({'error_message': message}, status=400)
 
         return JsonResponse({}, status=204)
 
@@ -168,17 +175,6 @@ def google_verify(request: HttpRequest) -> bool:
         return False
 
 
-def send_discord_message(message: str) -> httpx.Response:
-    logger.debug('send_discord_message')
-    context = {'message': message}
-    discord_message = render_to_string('message/discord-message.html', context)
-    logger.debug('discord_message: %s', discord_message)
-    data = {'content': discord_message}
-    r = httpx.post(settings.DISCORD_WEBHOOK, json=data, timeout=5)
-    logger.debug('r.status_code: %s', r.status_code)
-    return r
-
-
 def get_pubsub_message(pubsub, timeout: int = 6):
     logger.debug('get_pubsub_message')
     message = None
@@ -191,3 +187,14 @@ def get_pubsub_message(pubsub, timeout: int = 6):
         time.sleep(0.01)
         now = time.time()
     return message
+
+
+def send_discord_message(message: str) -> httpx.Response:
+    logger.debug('send_discord_message')
+    context = {'message': message}
+    discord_message = render_to_string('message/discord-message.html', context)
+    logger.debug('discord_message: %s', discord_message)
+    data = {'content': discord_message}
+    r = httpx.post(settings.DISCORD_WEBHOOK, json=data, timeout=5)
+    logger.debug('r.status_code: %s', r.status_code)
+    return r
