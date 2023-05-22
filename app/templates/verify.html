@@ -30,14 +30,14 @@
              alt="{{ member.name }}" height="128" width="128">
     </div>
 
-    {% if not request.session.g_verified %}
+    {% if not verified %}
         <p class="lead">Let's get you verified, {{ member.name }}.</p>
     {% else %}
         <p class="lead">You are already verified, {{ member.name }}.</p>
     {% endif %}
 
     <div class="d-flex flex-column text-center justify-content-center align-items-center" style="min-height: 120px">
-        {% if not request.session.g_verified %}
+        {% if not verified %}
             <form id="verify-form" name="verify-form" method="POST" action="{% url 'home:verify' %}">
                 {% csrf_token %}
                 <div class="g-recaptcha"

@@ -2,6 +2,7 @@ import httpx
 import json
 import logging
 import time
+import redis
 from django.conf import settings
 from django.core.cache import cache
 from django.http import HttpRequest, JsonResponse
@@ -9,6 +10,7 @@ from django.shortcuts import render
 from django.template.loader import render_to_string
 from django.utils.crypto import get_random_string
 from django_redis import get_redis_connection
+from typing import Optional, Union, Any
 from .forms import ContactForm
 from .models import Contact
 
@@ -61,27 +63,31 @@ def verify_view(request):
     logger.debug('is_secure: %s', request.is_secure())
     # logger.debug(request.META)
 
-    if request.method == 'GET':
+    if request.method in ['GET', 'HEAD']:
         logger.debug(request.GET)
         guild_id = request.GET.get('guild')
         logger.debug('guild_id: %s', guild_id)
         user_id = request.GET.get('user')
         logger.debug('user_id: %s', user_id)
+        # context = {'verified': False}
         if not guild_id or not user_id:
             context = {'error': 'Invalid Request. No guild or user in query.'}
             return render(request, 'verify.html', context)
 
-        br = cache.get(f'{guild_id}')
+        br = cache.get(f'br:{user_id}')
         if not br:
             br = bot_request('red.captcha', ['data'], guild_id, user_id)
-            logger.debug('br: %s', br)
             if br:
-                cache.set(f'{guild_id}', br, 30)
+                cache.set(f'br:{user_id}', br, 15)
             else:
                 context = {'error': 'Error fetching data from Discord.'}
                 return render(request, 'verify.html', context)
 
+        logger.debug('br: %s', br)
         context = {'guild': br['guild'], 'member': br['member']}
+        if 'verified' in br and br['verified']:
+            context['verified'] = True
+        logger.debug('context: %s', context)
         return render(request, 'verify.html', context)
 
     try:
@@ -90,12 +96,12 @@ def verify_view(request):
             context = {'error_message': 'Google CAPTCHA not verified.'}
             return JsonResponse(context, status=400)
 
-        guild = request.POST['guild']
-        logger.debug('guild: %s', guild)
-        user = request.POST['user']
-        logger.debug('user: %s', user)
-        data = {'guild': int(guild), 'user': int(user)}
-        br = bot_request('red.captcha', ['verify'], guild, user, data)
+        guild_id = request.POST['guild']
+        logger.debug('guild: %s', guild_id)
+        user_id = request.POST['user']
+        logger.debug('user: %s', user_id)
+        data = {'guild': int(guild_id), 'user': int(user_id)}
+        br = bot_request('red.captcha', ['verify'], guild_id, user_id, data)
         logger.debug('br: %s', br)
         if not br:
             context = {'error_message': 'Error fetching data from Discord.'}
@@ -108,6 +114,10 @@ def verify_view(request):
                 message = 'Error completing verification with Discord Bot.'
             return JsonResponse({'error_message': message}, status=400)
 
+        cache.delete(f'br:{user_id}')
+        # br = cache.get(f'br:{guild_id}')
+        # if br:
+        #     br.delete()
         return JsonResponse({}, status=204)
 
     except Exception as error:
@@ -115,11 +125,9 @@ def verify_view(request):
         return JsonResponse({'error_message': str(error)}, status=400)
 
 
-def bot_request(channel: int | str,
-                requests: list,
-                guild_id: int | str,
-                user_id: int | str = 0,
-                data: dict = None) -> dict | None:
+def bot_request(channel: Union[str, int], requests: list[str],
+                guild_id: Union[str, int], user_id: Union[str, int],
+                data: Optional[dict] = None) -> Optional[dict]:
     try:
         # Send Data
         logger.debug('channel: %s', channel)
@@ -142,7 +150,7 @@ def bot_request(channel: int | str,
         logger.debug('pub_ret: %s', pub_ret)
         if pub_ret == 0:
             logger.warning('BOT NOT Listening on pubsub channel: %s', channel)
-            return None
+            return
 
         # Get Data
         message = get_pubsub_message(p)
@@ -151,7 +159,22 @@ def bot_request(channel: int | str,
     except Exception as error:
         logger.warning('Error Getting BOT Data')
         logger.exception(error)
-        return None
+        return
+
+
+def get_pubsub_message(pubsub: redis.client.PubSub,
+                       timeout: int = 6) -> Optional[dict]:
+    logger.debug('get_pubsub_message')
+    message = None
+    now = time.time()
+    t = now + timeout
+    while now < t:
+        message = pubsub.get_message(timeout=timeout)
+        if message is not None:
+            break
+        time.sleep(0.01)
+        now = time.time()
+    return message
 
 
 def google_verify(request: HttpRequest) -> bool:
@@ -173,20 +196,6 @@ def google_verify(request: HttpRequest) -> bool:
     except Exception as error:
         logger.exception(error)
         return False
-
-
-def get_pubsub_message(pubsub, timeout: int = 6):
-    logger.debug('get_pubsub_message')
-    message = None
-    now = time.time()
-    t = now + timeout
-    while now < t:
-        message = pubsub.get_message(timeout=timeout)
-        if message is not None:
-            break
-        time.sleep(0.01)
-        now = time.time()
-    return message
 
 
 def send_discord_message(message: str) -> httpx.Response:
