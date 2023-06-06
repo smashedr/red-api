@@ -17,7 +17,8 @@ services:
       - "80:80"
     depends_on:
       - app
-#      - redis-commander
+      - redis-commander
+#      - uptime-kuma
 #      - pgadmin
 
   app:
@@ -31,18 +32,6 @@ services:
       - data_dir:/data
     networks:
       - redbot-internal
-#    depends_on:
-#      - redis
-
-#  redis:
-#    image: redis:6-alpine
-#    command: "redis-server --appendonly yes"
-#    deploy:
-#      replicas: 1
-#    volumes:
-#      - redis_data:/data
-#    networks:
-#      - redbot-internal
 
   redis-commander:
     image: ghcr.io/joeferner/redis-commander:latest
@@ -54,6 +43,17 @@ services:
       replicas: 1
     networks:
       - redbot-internal
+
+#  uptime-kuma:
+#    image: louislam/uptime-kuma:1
+#    deploy:
+#      replicas: 1
+#    volumes:
+#      - uptime_data:/app/data
+#    networks:
+#      - redbot-internal
+#    ports:
+#      - "3001:3001"
 
 #  pgadmin:
 #    image: dpage/pgadmin4:latest
@@ -72,7 +72,7 @@ secrets:
 
 volumes:
   data_dir:
-#  redis_data:
+  uptime_data:
 
 networks:
   redbot-internal:

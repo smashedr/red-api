@@ -3,14 +3,16 @@ import json
 import logging
 import time
 import redis
+import xmltodict
 from django.conf import settings
 from django.core.cache import cache
-from django.http import HttpRequest, JsonResponse
+from django.http import HttpRequest, HttpResponse, JsonResponse
 from django.shortcuts import render
 from django.template.loader import render_to_string
 from django.utils.crypto import get_random_string
+from django.views.decorators.csrf import csrf_exempt
 from django_redis import get_redis_connection
-from typing import Optional, Union, Any
+from typing import Optional, Union, Any, Dict
 from .forms import ContactForm
 from .models import Contact
 
@@ -19,15 +21,13 @@ logger = logging.getLogger('app')
 
 def home_view(request):
     # View: /
-    logger.debug('home_view')
-    logger.debug('is_secure: %s', request.is_secure())
+    logger.debug('home_view: is_secure: %s', request.is_secure())
     return render(request, 'home.html')
 
 
 def contact_view(request):
     # View: /contact/
-    logger.debug('contact_view')
-    logger.debug('is_secure: %s', request.is_secure())
+    logger.debug('contact_view: is_secure: %s', request.is_secure())
     if not request.method == 'POST':
         return render(request, 'contact.html')
 
@@ -57,12 +57,89 @@ def contact_view(request):
         return JsonResponse({'error_message': str(error)}, status=400)
 
 
+def fa_view(request):
+    # View: /flightaware/
+    logger.debug('fa_view: is_secure: %s', request.is_secure())
+    if not request.method == 'GET':
+        logger.debug('-'*20)
+        logger.debug(request.GET)
+    if not request.method == 'POST':
+        logger.debug('-'*20)
+        logger.debug(request.POST)
+
+    # Form response
+    r_title: str
+    r_detail: str
+    r_status: int
+    data: Dict[str, Any] = request.json
+    # Process data by getting things needed
+
+    body = request.body.decode('utf-8')
+    data: Dict[str, Any] = json.loads(body)
+    logger.info(data)
+
+    try:
+        processed_data: Dict[str, Any] = {
+            "long_description": data["long_description"],
+            "short_description": data["short_description"],
+            "summary": data["summary"],
+            "event_code": data["event_code"],
+            "alert_id": data["alert_id"],
+            "fa_flight_id": data["flight"]["fa_flight_id"],
+            "ident": data["flight"]["ident"],
+            "registration": data["flight"]["registration"],
+            "aircraft_type": data["flight"]["aircraft_type"],
+            "origin": data["flight"]["origin"],
+            "destination": data["flight"]["destination"],
+        }
+
+    except KeyError as error:
+        logger.exception(error)
+        return HttpResponse(status=400)
+    except Exception as error:
+        logger.exception(error)
+        return HttpResponse(status=500)
+
+    return HttpResponse()
+
+
+@csrf_exempt
+def yt_view(request):
+    # View: /youtube/
+    logger.debug('%s - yt_view - is_secure: %s', request.method, request.is_secure())
+    try:
+        if request.method == 'GET':
+            logger.debug(request.GET)
+            challenge = request.GET.get('hub.challenge', None)
+            logger.debug(challenge)
+            if challenge:
+                logger.debug('return 200: %s', challenge)
+                return HttpResponse(challenge, status=200)
+            logger.debug('return 400')
+            return HttpResponse(status=400)
+
+        if request.method == 'POST':
+            logger.debug(request.POST)
+            body = request.body.decode('utf-8')
+            logger.debug('-'*20)
+            logger.debug(body)
+            logger.debug('-'*20)
+            data = xmltodict.parse(body)
+            logger.debug(data)
+            r = bot_request('red.youtube', ['new'], 0, 0, data)
+            logger.debug(r)
+            logger.debug('return 204')
+            return HttpResponse(status=204)
+
+    except Exception as error:
+        logger.exception(error)
+        logger.debug('return 400')
+        return HttpResponse(status=400)
+
+
 def verify_view(request):
     # View: /verify/
-    logger.debug('verify_view')
-    logger.debug('is_secure: %s', request.is_secure())
-    # logger.debug(request.META)
-
+    logger.debug('verify_view: is_secure: %s', request.is_secure())
     if request.method in ['GET', 'HEAD']:
         logger.debug(request.GET)
         guild_id = request.GET.get('guild')
@@ -150,7 +227,7 @@ def bot_request(channel: Union[str, int], requests: list[str],
         logger.debug('pub_ret: %s', pub_ret)
         if pub_ret == 0:
             logger.warning('BOT NOT Listening on pubsub channel: %s', channel)
-            return
+            return None
 
         # Get Data
         message = get_pubsub_message(p)
@@ -159,7 +236,7 @@ def bot_request(channel: Union[str, int], requests: list[str],
     except Exception as error:
         logger.warning('Error Getting BOT Data')
         logger.exception(error)
-        return
+        return None
 
 
 def get_pubsub_message(pubsub: redis.client.PubSub,
@@ -207,3 +284,22 @@ def send_discord_message(message: str) -> httpx.Response:
     r = httpx.post(settings.DISCORD_WEBHOOK, json=data, timeout=5)
     logger.debug('r.status_code: %s', r.status_code)
     return r
+
+
+def yt_sub(callback='https://intranet.cssnr.com/youtube/',
+           channel_id='UCkHizGOU0va29RVjrfdz_Aw') -> int:
+    data = {
+        'hub.callback': callback,
+        'hub.topic': f'https://www.youtube.com/feeds/videos.xml?channel_id={channel_id}',
+        'hub.verify': 'async',
+        'hub.mode': 'subscribe',
+        'hub.verify_token': '',
+        'hub.secret': '',
+        'hub.lease_numbers': '',
+    }
+    url = 'https://pubsubhubbub.appspot.com/subscribe'
+    r = httpx.post(url, data=data, timeout=10)
+    logger.debug('r.status_code: %s', r.status_code)
+    if not r.is_success:
+        r.raise_for_status()
+    return r.status_code

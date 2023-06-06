@@ -4,3 +4,4 @@ gunicorn
 httpx
 psycopg[binary]
 python-decouple
+xmltodict
