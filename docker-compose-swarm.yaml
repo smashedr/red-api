@@ -30,7 +30,7 @@ services:
       - net-internal
     depends_on:
       - app
-      - flower
+#      - flower
       - redis-commander
 
   app:
@@ -55,29 +55,29 @@ services:
     depends_on:
       - redis
 
-  worker:
-    image: ${REGISTRY_HOST}/shane/myapp-app:${VERSION}
-    env_file: ${ENV_FILE}
-    command: "celery -A myapp worker -l INFO -c 2"
-    deploy:
-      replicas: 1
-    networks:
-      - net-internal
-    depends_on:
-      - app
-      - redis
-
-  beat:
-    image: ${REGISTRY_HOST}/shane/myapp-app:${VERSION}
-    env_file: ${ENV_FILE}
-    command: "celery -A myapp beat -l INFO -S django"
-    deploy:
-      replicas: 1
-    networks:
-      - net-internal
-    depends_on:
-      - app
-      - redis
+#  worker:
+#    image: ${REGISTRY_HOST}/shane/myapp-app:${VERSION}
+#    env_file: ${ENV_FILE}
+#    command: "celery -A myapp worker -l INFO -c 2"
+#    deploy:
+#      replicas: 1
+#    networks:
+#      - net-internal
+#    depends_on:
+#      - app
+#      - redis
+#
+#  beat:
+#    image: ${REGISTRY_HOST}/shane/myapp-app:${VERSION}
+#    env_file: ${ENV_FILE}
+#    command: "celery -A myapp beat -l INFO -S django"
+#    deploy:
+#      replicas: 1
+#    networks:
+#      - net-internal
+#    depends_on:
+#      - app
+#      - redis
 
   redis:
     image: redis:6-alpine
@@ -102,18 +102,18 @@ services:
     depends_on:
       - redis
 
-  flower:
-    image: mher/flower:latest
-    env_file: ${ENV_FILE}
-    deploy:
-      replicas: 1
-    volumes:
-      - flower_data:/data
-    networks:
-      - net-internal
-    depends_on:
-      - app
-      - redis
+#  flower:
+#    image: mher/flower:latest
+#    env_file: ${ENV_FILE}
+#    deploy:
+#      replicas: 1
+#    volumes:
+#      - flower_data:/data
+#    networks:
+#      - net-internal
+#    depends_on:
+#      - app
+#      - redis
 
 secrets:
   cssnr_basic_http_auth:
