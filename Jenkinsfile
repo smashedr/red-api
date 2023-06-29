@@ -12,15 +12,18 @@ pipeline {
     }
     environment {
         DISCORD_ID = "discord-hook-smashed"
-        COMPOSE_FILE = "docker-compose-swarm.yml"
+        COMPOSE_FILE = "docker-compose-swarm.yaml"
+        REGISTRY_HOST = "registry.hosted-domains.com"
 
         BUILD_CAUSE = getBuildCause()
         VERSION = getVersion("${GIT_BRANCH}")
+
         GIT_ORG = getGitGroup("${GIT_URL}")
         GIT_REPO = getGitRepo("${GIT_URL}")
+
         BASE_NAME = "${GIT_ORG}-${GIT_REPO}"
         SERVICE_NAME = "${BASE_NAME}"
-        NFS_HOST = "nfs01.cssnr.com"
+        CONFIG_SERVICE_NAME = "shane-red-api"
     }
     stages {
         stage('Init') {
@@ -30,7 +33,6 @@ pipeline {
                         "JOB_NAME:      ${JOB_NAME}\n" +
                         "COMPOSE_FILE:  ${COMPOSE_FILE}\n" +
                         "SERVICE_NAME:  ${SERVICE_NAME}\n" +
-                        "NFS_HOST:      ${NFS_HOST}\n" +
                         "BUILD_CAUSE:   ${BUILD_CAUSE}\n" +
                         "GIT_BRANCH:    ${GIT_BRANCH}\n" +
                         "VERSION:       ${VERSION}\n"
@@ -46,19 +48,16 @@ pipeline {
                 }
             }
             environment {
-                STACK_NAME = "dev-${SERVICE_NAME}"
-                NFS_DIRECTORY = "${STACK_NAME}"
-                TRAEFIK_HOST = "`dev.example.com`"
-                ENV_FILE = "service-configs/services/${SERVICE_NAME}/dev.env"
+                STACK_NAME = "dev_${SERVICE_NAME}"
+                TRAEFIK_HOST = "`red-api-dev.cssnr.com`"
+                ENV_FILE = "service-configs/services/${CONFIG_SERVICE_NAME}/dev.env"
             }
             steps {
                 echo "\n--- Starting Dev Deploy ---\n" +
                         "STACK_NAME:        ${STACK_NAME}\n" +
-                        "NFS_DIRECTORY:     ${NFS_DIRECTORY}\n" +
                         "TRAEFIK_HOST:      ${TRAEFIK_HOST}\n" +
                         "ENV_FILE:          ${ENV_FILE}\n"
                 sendDiscord("${DISCORD_ID}", "Dev Deploy Started")
-                setupNfs("${STACK_NAME}")
                 updateCompose("${COMPOSE_FILE}", "STACK_NAME", "${STACK_NAME}")
                 stackPush("${COMPOSE_FILE}")
                 stackDeploy("${COMPOSE_FILE}", "${STACK_NAME}")
@@ -73,19 +72,16 @@ pipeline {
                 }
             }
             environment {
-                STACK_NAME = "prod-${SERVICE_NAME}"
-                NFS_DIRECTORY = "${STACK_NAME}"
-                TRAEFIK_HOST = "`example.com`"
-                ENV_FILE = "service-configs/services/${SERVICE_NAME}/prod.env"
+                STACK_NAME = "prod_${SERVICE_NAME}"
+                TRAEFIK_HOST = "`red-api.cssnr.com`"
+                ENV_FILE = "service-configs/services/${CONFIG_SERVICE_NAME}/prod.env"
             }
             steps {
                 echo "\n--- Starting Prod Deploy ---\n" +
                         "STACK_NAME:        ${STACK_NAME}\n" +
-                        "NFS_DIRECTORY:     ${NFS_DIRECTORY}\n" +
                         "TRAEFIK_HOST:      ${TRAEFIK_HOST}\n" +
                         "ENV_FILE:          ${ENV_FILE}\n"
                 sendDiscord("${DISCORD_ID}", "Prod Deploy Started")
-                setupNfs("${STACK_NAME}")
                 updateCompose("${COMPOSE_FILE}", "STACK_NAME", "${STACK_NAME}")
                 stackPush("${COMPOSE_FILE}")
                 stackDeploy("${COMPOSE_FILE}", "${STACK_NAME}")

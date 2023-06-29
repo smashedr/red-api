@@ -116,7 +116,7 @@ def plotly_view(request, pk: Optional[str] = None):
             logger.debug(data)
             if not data:
                 return HttpResponse(status=404)
-            return HttpResponse(data, status=200)
+            return HttpResponse(data)
 
         if request.method == 'POST':
             logger.debug(request.POST)
@@ -126,6 +126,7 @@ def plotly_view(request, pk: Optional[str] = None):
             logger.debug('-'*20)
             key = str(datetime.now().timestamp())
             cache.set(key, body, 60*60*24*7)
+            return HttpResponse(key)
 
     except Exception as error:
         logger.exception(error)
