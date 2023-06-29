@@ -121,7 +121,7 @@ secrets:
 
 volumes:
   data_dir:
-  flower_data:
+#  flower_data:
   redis_data:
 
 networks:
