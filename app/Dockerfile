@@ -25,4 +25,5 @@ RUN addgroup -g 1000 app  &&\
 WORKDIR /app
 COPY --chown=app:app . .
 USER app
+#HEALTHCHECK CMD curl --fail http://localhost:9000 || exit 1
 ENTRYPOINT ["sh", "docker-entrypoint.sh"]

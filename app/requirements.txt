@@ -2,6 +2,9 @@ django>=4,<5
 django-redis
 gunicorn
 httpx
+# kaleido
+# pandas
+# plotly
 psycopg[binary]
 python-decouple
 xmltodict

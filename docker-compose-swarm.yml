@@ -36,6 +36,12 @@ services:
     image: registry.hosted-domains.com/shane/myapp-app:${VERSION}
     env_file: ${ENV_FILE}
     command: "gunicorn myapp.asgi:application -b 0.0.0.0:9000 -w 2 -k uvicorn.workers.UvicornWorker"
+    healthcheck:
+      test: ["CMD", "curl", "-sf", "http://localhost:9000/app-health-check/"]
+      interval: 1m
+      timeout: 10s
+      retries: 3
+      start_period: 30s
     deploy:
       mode: global
     volumes:

@@ -4,6 +4,7 @@ import logging
 import time
 import redis
 import xmltodict
+from datetime import datetime
 from django.conf import settings
 from django.core.cache import cache
 from django.http import HttpRequest, HttpResponse, JsonResponse
@@ -101,6 +102,34 @@ def fa_view(request):
         return HttpResponse(status=500)
 
     return HttpResponse()
+
+
+@csrf_exempt
+def plotly_view(request, pk: Optional[str] = None):
+    # View: /plotly/
+    logger.debug('%s - plotly_view - is_secure: %s', request.method, request.is_secure())
+    try:
+        if request.method == 'GET':
+            logger.debug(request.GET)
+            logger.debug(pk)
+            data = cache.get(pk)
+            logger.debug(data)
+            if not data:
+                return HttpResponse(status=404)
+            return HttpResponse(data, status=200)
+
+        if request.method == 'POST':
+            logger.debug(request.POST)
+            body = request.body.decode()
+            logger.debug('-'*20)
+            logger.debug(body)
+            logger.debug('-'*20)
+            key = str(datetime.now().timestamp())
+            cache.set(key, body, 60*60*24*7)
+
+    except Exception as error:
+        logger.exception(error)
+        return HttpResponse(status=400)
 
 
 @csrf_exempt
