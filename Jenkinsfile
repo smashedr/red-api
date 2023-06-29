@@ -33,7 +33,6 @@ pipeline {
                         "JOB_NAME:      ${JOB_NAME}\n" +
                         "COMPOSE_FILE:  ${COMPOSE_FILE}\n" +
                         "SERVICE_NAME:  ${SERVICE_NAME}\n" +
-                        "NFS_HOST:      ${NFS_HOST}\n" +
                         "BUILD_CAUSE:   ${BUILD_CAUSE}\n" +
                         "GIT_BRANCH:    ${GIT_BRANCH}\n" +
                         "VERSION:       ${VERSION}\n"
