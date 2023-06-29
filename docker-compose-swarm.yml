@@ -3,7 +3,7 @@ version: '3.9'
 services:
   nginx:
     build: ./nginx
-    image: registry.hosted-domains.com/shane/myapp-nginx:${VERSION}
+    image: ${REGISTRY_HOST}/shane/myapp-nginx:${VERSION}
     deploy:
       mode: global
       labels:
@@ -33,7 +33,7 @@ services:
 
   app:
     build: ./app
-    image: registry.hosted-domains.com/shane/myapp-app:${VERSION}
+    image: ${REGISTRY_HOST}/shane/myapp-app:${VERSION}
     env_file: ${ENV_FILE}
     command: "gunicorn myapp.asgi:application -b 0.0.0.0:9000 -w 2 -k uvicorn.workers.UvicornWorker"
     healthcheck:
@@ -52,7 +52,7 @@ services:
       - redis
 
   worker:
-    image: registry.hosted-domains.com/shane/myapp-app:${VERSION}
+    image: ${REGISTRY_HOST}/shane/myapp-app:${VERSION}
     env_file: ${ENV_FILE}
     command: "celery -A myapp worker -l INFO -c 2"
     deploy:
@@ -64,7 +64,7 @@ services:
       - redis
 
   beat:
-    image: registry.hosted-domains.com/shane/myapp-app:${VERSION}
+    image: ${REGISTRY_HOST}/shane/myapp-app:${VERSION}
     env_file: ${ENV_FILE}
     command: "celery -A myapp beat -l INFO -S django"
     deploy:
@@ -117,11 +117,6 @@ secrets:
 
 volumes:
   data_dir:
-    driver: local
-    driver_opts:
-      type: nfs
-      o: "addr=${NFS_HOST},rw"
-      device: ":/data/docker/${NFS_DIRECTORY}"
   flower_data:
   redis_data:
 
