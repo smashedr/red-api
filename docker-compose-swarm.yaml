@@ -52,6 +52,7 @@ services:
       - data_dir:/data
     networks:
       - net-internal
+      - postgres
     depends_on:
       - redis
 
@@ -128,4 +129,6 @@ networks:
   net-internal:
     driver: overlay
   traefik-public:
+    external: true
+  postgres:
     external: true
