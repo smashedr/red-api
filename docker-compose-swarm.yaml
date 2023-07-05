@@ -5,9 +5,13 @@ services:
     build:
       context: ./nginx
       network: host
-    image: ${REGISTRY_HOST}/shane/myapp-nginx:${VERSION}
+    image: ${REGISTRY_HOST}/shane/redapi-nginx:${VERSION}
     deploy:
       mode: global
+      resources:
+        limits:
+          cpus: '2.0'
+          memory: 50M
       labels:
         - "traefik.enable=true"
         - "traefik.docker.network=traefik-public"
@@ -25,19 +29,21 @@ services:
     secrets:
       - source: cssnr_basic_http_auth
         target: /etc/nginx/auth.users
+    depends_on:
+      - app
+      # - flower
+      # - redis-commander
+      # - uptime-kuma
+      # - pgadmin
     networks:
       - traefik-public
       - net-internal
-    depends_on:
-      - app
-#      - flower
-      - redis-commander
 
   app:
     build:
       context: ./app
       network: host
-    image: ${REGISTRY_HOST}/shane/myapp-app:${VERSION}
+    image: ${REGISTRY_HOST}/shane/redapi-app:${VERSION}
     env_file: ${ENV_FILE}
     command: "gunicorn myapp.wsgi:application -b 0.0.0.0:9000 -w 2"
     healthcheck:
@@ -45,63 +51,52 @@ services:
       interval: 1m
       timeout: 10s
       retries: 3
-      start_period: 30s
+      start_period: 15s
     deploy:
       mode: global
+      resources:
+        limits:
+          cpus: '2.0'
+          memory: 250M
     volumes:
       - data_dir:/data
+    depends_on:
+      - redis
     networks:
       - net-internal
       - postgres
-    depends_on:
-      - redis
 
 #  worker:
-#    image: ${REGISTRY_HOST}/shane/myapp-app:${VERSION}
+#    image: ${REGISTRY_HOST}/shane/redapi-app:${VERSION}
 #    env_file: ${ENV_FILE}
 #    command: "celery -A myapp worker -l INFO -c 2"
 #    deploy:
 #      replicas: 1
-#    networks:
-#      - net-internal
+#      resources:
+#        limits:
+#          cpus: '2.0'
+#          memory: 200M
 #    depends_on:
 #      - app
 #      - redis
-#
+#    networks:
+#      - net-internal
+
 #  beat:
-#    image: ${REGISTRY_HOST}/shane/myapp-app:${VERSION}
+#    image: ${REGISTRY_HOST}/shane/redapi-app:${VERSION}
 #    env_file: ${ENV_FILE}
 #    command: "celery -A myapp beat -l INFO -S django"
 #    deploy:
 #      replicas: 1
-#    networks:
-#      - net-internal
+#      resources:
+#        limits:
+#          cpus: '2.0'
+#          memory: 150M
 #    depends_on:
 #      - app
 #      - redis
-
-  redis:
-    image: redis:6-alpine
-    command: "redis-server --appendonly yes"
-    deploy:
-      replicas: 1
-    volumes:
-      - redis_data:/data
-    networks:
-      - net-internal
-
-  redis-commander:
-    image: ghcr.io/joeferner/redis-commander:latest
-    environment:
-      - REDIS_HOSTS=local:redis:6379:0,local:redis:6379:1
-      - URL_PREFIX=/redis
-      - TRUST_PROXY=true
-    deploy:
-      replicas: 1
-    networks:
-      - net-internal
-    depends_on:
-      - redis
+#    networks:
+#      - net-internal
 
 #  flower:
 #    image: mher/flower:latest
@@ -115,6 +110,37 @@ services:
 #    depends_on:
 #      - app
 #      - redis
+
+  redis:
+    image: redis:6-alpine
+    command: "redis-server --appendonly yes"
+    deploy:
+      replicas: 1
+      resources:
+        limits:
+          cpus: '2.0'
+          memory: 50M
+    volumes:
+      - redis_data:/data
+    networks:
+      - net-internal
+
+  redis-commander:
+    image: ghcr.io/joeferner/redis-commander:latest
+    environment:
+      - REDIS_HOSTS=local:redis:6379:0,local:redis:6379:1
+      - URL_PREFIX=/redis
+      - TRUST_PROXY=true
+    deploy:
+      replicas: 1
+      resources:
+        limits:
+          cpus: '2.0'
+          memory: 100M
+    depends_on:
+      - redis
+    networks:
+      - net-internal
 
 secrets:
   cssnr_basic_http_auth:

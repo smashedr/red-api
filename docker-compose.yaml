@@ -2,10 +2,28 @@ version: '3.7'
 
 services:
   nginx:
-    build: ./nginx
-    image: myapp-nginx:latest
+    build:
+      context: ./nginx
+      network: host
+    image: shane-redapi-nginx:latest
     deploy:
       mode: global
+      resources:
+        limits:
+          cpus: '2.0'
+          memory: 50M
+      labels:
+        - "traefik.enable=true"
+        - "traefik.docker.network=traefik-public"
+        - "traefik.constraint-label=traefik-public"
+        - "traefik.http.routers.STACK_NAME-http.rule=Host(${TRAEFIK_HOST})"
+        - "traefik.http.routers.STACK_NAME-http.entrypoints=http"
+        - "traefik.http.routers.STACK_NAME-http.middlewares=https-redirect"
+        - "traefik.http.routers.STACK_NAME-https.rule=Host(${TRAEFIK_HOST})"
+        - "traefik.http.routers.STACK_NAME-https.entrypoints=https"
+        - "traefik.http.routers.STACK_NAME-https.tls=true"
+        - "traefik.http.services.STACK_NAME.loadbalancer.server.port=80"
+        - "traefik.http.services.STACK_NAME.loadbalancer.server.scheme=http"
     volumes:
       - data_dir:/data
     secrets:
@@ -13,17 +31,20 @@ services:
         target: /etc/nginx/auth.users
     networks:
       - redbot-internal
-    ports:
-      - "80:80"
     depends_on:
       - app
-      - redis-commander
-#      - uptime-kuma
-#      - pgadmin
+      # - flower
+      # - redis-commander
+      # - uptime-kuma
+      # - pgadmin
+    ports:
+      - "80:80"
 
   app:
-    build: ./app
-    image: myapp-app:latest
+    build:
+      context: ./app
+      network: host
+    image: shane-redapi-app:latest
     env_file: settings.env
     command: "gunicorn myapp.wsgi:application -b 0.0.0.0:9000 -w 2"
     healthcheck:
@@ -31,13 +52,70 @@ services:
       interval: 1m
       timeout: 10s
       retries: 3
-      start_period: 30s
+      start_period: 15s
     deploy:
       mode: global
+      resources:
+        limits:
+          cpus: '2.0'
+          memory: 250M
     volumes:
       - data_dir:/data
     networks:
       - redbot-internal
+
+#  worker:
+#    image: ${REGISTRY_HOST}/shane/redapi-app:${VERSION}
+#    env_file: ${ENV_FILE}
+#    command: "celery -A myapp worker -l INFO -c 2"
+#    deploy:
+#      replicas: 1
+#      resources:
+#        limits:
+#          cpus: '2.0'
+#          memory: 200M
+#    depends_on:
+#      - app
+#      - redis
+
+#  beat:
+#    image: ${REGISTRY_HOST}/shane/redapi-app:${VERSION}
+#    env_file: ${ENV_FILE}
+#    command: "celery -A myapp beat -l INFO -S django"
+#    deploy:
+#      replicas: 1
+#      resources:
+#        limits:
+#          cpus: '2.0'
+#          memory: 150M
+#    depends_on:
+#      - app
+#      - redis
+
+#  flower:
+#    image: mher/flower:latest
+#    env_file: ${ENV_FILE}
+#    deploy:
+#      replicas: 1
+#    volumes:
+#      - flower_data:/data
+#    networks:
+#      - net-internal
+#    depends_on:
+#      - app
+#      - redis
+
+  redis:
+    image: redis:6-alpine
+    command: "redis-server --appendonly yes"
+    deploy:
+      replicas: 1
+      resources:
+        limits:
+          cpus: '2.0'
+          memory: 50M
+    volumes:
+      - redis_data:/data
 
   redis-commander:
     image: ghcr.io/joeferner/redis-commander:latest
@@ -47,30 +125,12 @@ services:
       - TRUST_PROXY=true
     deploy:
       replicas: 1
-    networks:
-      - redbot-internal
-
-#  uptime-kuma:
-#    image: louislam/uptime-kuma:1
-#    deploy:
-#      replicas: 1
-#    volumes:
-#      - uptime_data:/app/data
-#    networks:
-#      - redbot-internal
-#    ports:
-#      - "3001:3001"
-
-#  pgadmin:
-#    image: dpage/pgadmin4:latest
-#    environment:
-#      - PGADMIN_DEFAULT_EMAIL=shane@cssnr.com
-#      - PGADMIN_DEFAULT_PASSWORD=torrent1
-#      - PGADMIN_LISTEN_PORT=8082
-#    deploy:
-#      replicas: 1
-#    volumes:
-#      - redis_data:/data
+      resources:
+        limits:
+          cpus: '2.0'
+          memory: 100M
+    depends_on:
+      - redis
 
 secrets:
   cssnr_basic_http_auth:
@@ -78,6 +138,7 @@ secrets:
 
 volumes:
   data_dir:
+#  flower_data:
   uptime_data:
 
 networks:
