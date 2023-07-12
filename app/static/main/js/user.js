@@ -1,5 +1,4 @@
 $(document).ready(function() {
-
     // Get and set the csrf_token
     const csrftoken = document.querySelector('[name=csrfmiddlewaretoken]').value;
 
@@ -8,5 +7,4 @@ $(document).ready(function() {
         $('#log-out').submit();
         return false;
     });
-
 });

@@ -73,7 +73,7 @@ def oauth_logout(request):
 
     request.session['login_next_url'] = next_url
     logout(request)
-    messages.info(request, f'Successfully logged out.')
+    messages.info(request, 'Successfully logged out.')
     return redirect(next_url)
 
 

@@ -31,10 +31,10 @@ services:
         target: /etc/nginx/auth.users
     depends_on:
       - app
-      # - flower
-      # - redis-commander
-      # - uptime-kuma
-      # - pgadmin
+      #- flower
+      - redis-commander
+      #- uptime-kuma
+      #- pgadmin
     networks:
       - traefik-public
       - net-internal

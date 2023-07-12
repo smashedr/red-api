@@ -1,5 +1,4 @@
 $(document).ready(function() {
-
     $(".form-control").focus(function() {
         $(this).removeClass('is-invalid');
     });
@@ -49,5 +48,4 @@ $(document).ready(function() {
         });
         return false;
     });
-
 } );

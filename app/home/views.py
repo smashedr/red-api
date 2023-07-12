@@ -60,46 +60,46 @@ def contact_view(request):
 
 def fa_view(request):
     # View: /flightaware/
-    logger.debug('fa_view: is_secure: %s', request.is_secure())
-    if not request.method == 'GET':
-        logger.debug('-'*20)
-        logger.debug(request.GET)
-    if not request.method == 'POST':
-        logger.debug('-'*20)
-        logger.debug(request.POST)
-
-    # Form response
-    r_title: str
-    r_detail: str
-    r_status: int
-    data: Dict[str, Any] = request.json
-    # Process data by getting things needed
-
-    body = request.body.decode('utf-8')
-    data: Dict[str, Any] = json.loads(body)
-    logger.info(data)
-
-    try:
-        processed_data: Dict[str, Any] = {
-            "long_description": data["long_description"],
-            "short_description": data["short_description"],
-            "summary": data["summary"],
-            "event_code": data["event_code"],
-            "alert_id": data["alert_id"],
-            "fa_flight_id": data["flight"]["fa_flight_id"],
-            "ident": data["flight"]["ident"],
-            "registration": data["flight"]["registration"],
-            "aircraft_type": data["flight"]["aircraft_type"],
-            "origin": data["flight"]["origin"],
-            "destination": data["flight"]["destination"],
-        }
-
-    except KeyError as error:
-        logger.exception(error)
-        return HttpResponse(status=400)
-    except Exception as error:
-        logger.exception(error)
-        return HttpResponse(status=500)
+    # logger.debug('fa_view: is_secure: %s', request.is_secure())
+    # if not request.method == 'GET':
+    #     logger.debug('-'*20)
+    #     logger.debug(request.GET)
+    # if not request.method == 'POST':
+    #     logger.debug('-'*20)
+    #     logger.debug(request.POST)
+    #
+    # # Form response
+    # r_title: str
+    # r_detail: str
+    # r_status: int
+    # data: Dict[str, Any] = request.json
+    #
+    # # Process data by getting things needed
+    # body = request.body.decode('utf-8')
+    # data: Dict[str, Any] = json.loads(body)
+    # logger.info(data)
+    #
+    # try:
+    #     processed_data: Dict[str, Any] = {
+    #         "long_description": data["long_description"],
+    #         "short_description": data["short_description"],
+    #         "summary": data["summary"],
+    #         "event_code": data["event_code"],
+    #         "alert_id": data["alert_id"],
+    #         "fa_flight_id": data["flight"]["fa_flight_id"],
+    #         "ident": data["flight"]["ident"],
+    #         "registration": data["flight"]["registration"],
+    #         "aircraft_type": data["flight"]["aircraft_type"],
+    #         "origin": data["flight"]["origin"],
+    #         "destination": data["flight"]["destination"],
+    #     }
+    #
+    # except KeyError as error:
+    #     logger.exception(error)
+    #     return HttpResponse(status=400)
+    # except Exception as error:
+    #     logger.exception(error)
+    #     return HttpResponse(status=500)
 
     return HttpResponse()
 
