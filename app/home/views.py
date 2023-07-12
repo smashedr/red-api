@@ -13,7 +13,7 @@ from django.template.loader import render_to_string
 from django.utils.crypto import get_random_string
 from django.views.decorators.csrf import csrf_exempt
 from django_redis import get_redis_connection
-from typing import Optional, Union, Any, Dict
+from typing import Optional, Union
 from .forms import ContactForm
 from .models import Contact
 
