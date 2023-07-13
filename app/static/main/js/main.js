@@ -1,5 +1,4 @@
 $(document).ready(function() {
-
     // Back to Top Button, Function, and Listener
     let mybutton = document.getElementById("btn-back-to-top");
     window.onscroll = function () {
@@ -27,7 +26,6 @@ $(document).ready(function() {
 
     // Init a ClipboardJS attribute
     new ClipboardJS('.clip');
-
 });
 
 // Generate a BS toast and show it

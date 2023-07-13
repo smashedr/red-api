@@ -1,9 +1,7 @@
 $(document).ready(function() {
-
     $(".form-control").focus(function() {
         $(this).removeClass('is-invalid');
     });
-
 } );
 
 function g_captcha_callback(data) {

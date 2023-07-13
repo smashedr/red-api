@@ -29,14 +29,14 @@ services:
     secrets:
       - source: cssnr_basic_http_auth
         target: /etc/nginx/auth.users
-    networks:
-      - redbot-internal
     depends_on:
       - app
-      # - flower
-      # - redis-commander
-      # - uptime-kuma
-      # - pgadmin
+      #- flower
+      - redis-commander
+      #- uptime-kuma
+      #- pgadmin
+    networks:
+      - redbot-internal
     ports:
       - "80:80"
 
@@ -65,7 +65,7 @@ services:
       - redbot-internal
 
 #  worker:
-#    image: ${REGISTRY_HOST}/shane/redapi-app:${VERSION}
+#    image: shane-redapi-app:${VERSION}
 #    env_file: ${ENV_FILE}
 #    command: "celery -A myapp worker -l INFO -c 2"
 #    deploy:
@@ -116,6 +116,8 @@ services:
           memory: 50M
     volumes:
       - redis_data:/data
+    networks:
+      - redbot-internal
 
   redis-commander:
     image: ghcr.io/joeferner/redis-commander:latest
@@ -131,6 +133,8 @@ services:
           memory: 100M
     depends_on:
       - redis
+    networks:
+      - redbot-internal
 
 secrets:
   cssnr_basic_http_auth:
@@ -139,9 +143,9 @@ secrets:
 volumes:
   data_dir:
 #  flower_data:
-  uptime_data:
+  redis_data:
 
 networks:
   redbot-internal:
-    name: "redbot-internal"
+    name: "${ENV_NAME:-local}-cssnr-carlbot-internal"
     external: true
